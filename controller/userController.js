@@ -91,8 +91,30 @@ const create_user = [
   },
 ];
 
+const log_in = async (req, res, next) => {
+  passport.authenticate("local", { session: false }, (err, user, info) => {
+    if (err || !user) {
+      return next(new Error(info.message));
+    }
+    req.login(user, { session: false }, (err) => {
+      if (err) {
+        return next(err);
+      }
+      const token = sign({ user }, process.env.S_KEY || "");
+      res.send({
+        token,
+        theUser: {
+          username: user.name,
+        },
+      });
+    });
+  });
+};
+
 const userController = {
   get_user,
+  create_user,
+  log_in,
 };
 
 export default userController;
