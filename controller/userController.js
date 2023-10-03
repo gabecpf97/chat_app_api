@@ -10,9 +10,11 @@ import User from "../models/user";
 const get_user = (req, res, next) => {
   User.findById(req.user._id, "name email rooms contacts").exec(
     (err, theUser) => {
-      if (err) return next(err);
+      if (err) {
+        return next(err);
+      }
       res.send({ theUser });
-    },
+    }
   );
 };
 
@@ -27,8 +29,11 @@ const create_user = [
   check("username").custom(async (value) => {
     return new Promise((resolve, reject) => {
       User.findOne({ name: value }).exec((err, theUser) => {
-        if (!theUser) return resolve(true);
-        else return reject("Username already exists");
+        if (!theUser) {
+          return resolve(true);
+        } else {
+          return reject("Username already exists");
+        }
       });
     });
   }),
@@ -39,8 +44,11 @@ const create_user = [
   check("email").custom(async (value) => {
     return new Promise((resolve, reject) => {
       User.findOne({ email: value }).exec((err, theUser) => {
-        if (!theUser) return resolve(true);
-        else return reject("Email address already registed an account");
+        if (!theUser) {
+          return resolve(true);
+        } else {
+          return reject("Email address already registed an account");
+        }
       });
     });
   }),
@@ -52,6 +60,35 @@ const create_user = [
       return /\d/.test(value);
     })
     .withMessage("Password must include numbers"),
+  check("confirm_password", "Please enter the password you entered")
+    .escape()
+    .custom((value, { req }) => {
+      return value === req.body.password;
+    }),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    const user = new User({
+      name: req.body.username,
+      email: req.body.email,
+    });
+    if (!errors.isEmpty()) {
+      res.send({ errors: errors.array });
+    } else {
+      hash(req.body.password, 10, (err, hashedPassword) => {
+        if (err) {
+          return next(err);
+        }
+        user.password = hashedPassword;
+        user.save((err) => {
+          if (err) {
+            return next(err);
+          }
+          const token = sign({ user }, "sercet_key");
+          res.send({ token, user });
+        });
+      });
+    }
+  },
 ];
 
 const userController = {
