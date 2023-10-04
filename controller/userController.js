@@ -174,6 +174,9 @@ const edit_user = [
   },
 ];
 
+/**
+ * api call to change the user's password
+ */
 const change_password = [
   check("password").custom((value, { req }) => {
     return new Promise((resolve, reject) => {
@@ -231,7 +234,10 @@ const change_password = [
   },
 ];
 
-const user_delete = [
+/**
+ * api call to delete the user
+ */
+const delete_user = [
   check("password").custom((value, { req }) => {
     return new Promise((resolve, reject) => {
       User.findById(req.user._id).exec((err, theUser) => {
@@ -265,6 +271,9 @@ const user_delete = [
   },
 ];
 
+/**
+ * api call to send reset code email to user's email
+ */
 const forgot_password_reset = [
   body("email", "Please enter a valid email address")
     .normalizeEmail()
@@ -311,6 +320,9 @@ const forgot_password_reset = [
   },
 ];
 
+/**
+ * api call to reset with the provided new password given reset code
+ */
 const password_reset = [
   check("password")
     .trim()
@@ -368,7 +380,7 @@ const userController = {
   log_in,
   edit_user,
   change_password,
-  user_delete,
+  delete_user,
   forgot_password_reset,
   password_reset,
 };
