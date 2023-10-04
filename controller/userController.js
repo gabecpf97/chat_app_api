@@ -2,7 +2,9 @@ import { compare, hash } from "bcrypt";
 import { body, check, validationResult } from "express-validator";
 import passport from "passport";
 import { sign } from "jsonwebtoken";
+import { sendEmailTo } from "../HelperFunctions/helpers";
 import User from "../models/user";
+import { randomBytes } from "crypto";
 
 /**
  * api call to get user info
@@ -229,12 +231,146 @@ const change_password = [
   },
 ];
 
+const user_delete = [
+  check("password").custom((value, { req }) => {
+    return new Promise((resolve, reject) => {
+      User.findById(req.user._id).exec((err, theUser) => {
+        if (theUser) {
+          compare(value, theUser.password, (err, result) => {
+            if (result) {
+              return resolve(true);
+            } else {
+              return reject("password incorrect");
+            }
+          });
+        } else {
+          return reject("No such user");
+        }
+      });
+    });
+  }),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(errors.array());
+    } else {
+      User.findByIdAndDelete(req.user._id, (err) => {
+        if (err) {
+          return next(err);
+        } else {
+          res.send({ success: true });
+        }
+      });
+    }
+  },
+];
+
+const forgot_password_reset = [
+  body("email", "Please enter a valid email address")
+    .normalizeEmail()
+    .isEmail()
+    .escape(),
+  check("email").custom((value) => {
+    return new Promise((resolve, reject) => {
+      User.findOne({ email: value }).exec((err, theUser) => {
+        if (err || !theUser) {
+          return reject("Email is not linked to any account");
+        } else {
+          return resolve(true);
+        }
+      });
+    });
+  }),
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(errors.array());
+    } else {
+      User.findOne({ email: req.body.email }).exec((err, theUser) => {
+        if (err) {
+          return next(err);
+        } else if (!theUser) {
+          return next(new Error("No such User"));
+        } else {
+          const reset_code = randomBytes(12).toString("hex");
+          User.findByIdAndUpdate(theUser._id, { reset_code }, {}, (err) => {
+            if (err) {
+              return next(err);
+            } else {
+              const info = sendEmailTo(theUser.email, reset_code);
+              try {
+                res.send({ success: true, msg: info.messageId });
+              } catch (err) {
+                return next(err);
+              }
+            }
+          });
+        }
+      });
+    }
+  },
+];
+
+const password_reset = [
+  check("password")
+    .trim()
+    .isLength({ min: 8 })
+    .withMessage("Password must be longer than 8 character")
+    .custom((value) => {
+      return /\d/.test(value);
+    })
+    .withMessage("Password must include numbers"),
+  check("confirm_password", "Please enter the password you entered")
+    .escape()
+    .custom((value, { req }) => {
+      return value === req.body.password;
+    }),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return next(errors.array());
+    } else {
+      User.findOne({ reset_code: req.params.reset_code }).exec(
+        (err, theUser) => {
+          if (err) {
+            return next(err);
+          } else if (!theUser) {
+            return next(new Error("Invalid code"));
+          } else {
+            hash(req.body.password, 10, (err, hashedPassword) => {
+              if (err) {
+                return next(err);
+              } else {
+                User.findByIdAndUpdate(
+                  theUser._id,
+                  { passport: hashedPassword },
+                  {},
+                  (err) => {
+                    if (err) {
+                      return next(err);
+                    } else {
+                      res.send({ success: true });
+                    }
+                  }
+                );
+              }
+            });
+          }
+        }
+      );
+    }
+  },
+];
+
 const userController = {
   get_user,
   create_user,
   log_in,
   edit_user,
   change_password,
+  user_delete,
+  forgot_password_reset,
+  password_reset,
 };
 
 export default userController;
