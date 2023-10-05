@@ -10,7 +10,7 @@ import { randomBytes } from "crypto";
  * api call to get user info
  */
 const get_user = (req, res, next) => {
-  User.findById(req.user._id, "name email rooms contacts").exec(
+  User.findById(req.user.id, "name email rooms contacts").exec(
     (err, theUser) => {
       if (err) {
         return next(err);
@@ -150,9 +150,9 @@ const edit_user = [
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return next(errors.array());
+      res.send({ errors: errors.array });
     } else {
-      User.findById(req.user._id).exec((err, theUser) => {
+      User.findById(req.user.id).exec((err, theUser) => {
         if (err) {
           return next(err);
         }
@@ -160,7 +160,7 @@ const edit_user = [
           name: req.username,
           email: req.email,
         };
-        User.findByIdAndUpdate(req.user._id, updated, {}, (err, theUser) => {
+        User.findByIdAndUpdate(req.user.id, updated, {}, (err, theUser) => {
           if (err) {
             return next(err);
           }
@@ -180,7 +180,7 @@ const edit_user = [
 const change_password = [
   check("password").custom((value, { req }) => {
     return new Promise((resolve, reject) => {
-      User.findById(req.user._id).exec((err, theUser) => {
+      User.findById(req.user.id).exec((err, theUser) => {
         if (theUser) {
           compare(value, theUser.password, (err, result) => {
             if (result) {
@@ -218,7 +218,7 @@ const change_password = [
           return next(err);
         } else {
           User.findByIdAndUpdate(
-            req.user._id,
+            req.user.id,
             { password: hashedPassword },
             {},
             (err, theUser) => {
@@ -240,7 +240,7 @@ const change_password = [
 const delete_user = [
   check("password").custom((value, { req }) => {
     return new Promise((resolve, reject) => {
-      User.findById(req.user._id).exec((err, theUser) => {
+      User.findById(req.user.id).exec((err, theUser) => {
         if (theUser) {
           compare(value, theUser.password, (err, result) => {
             if (result) {
@@ -258,9 +258,9 @@ const delete_user = [
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return next(errors.array());
+      res.send({ errors: errors.array });
     } else {
-      User.findByIdAndDelete(req.user._id, (err) => {
+      User.findByIdAndDelete(req.user.id, (err) => {
         if (err) {
           return next(err);
         } else {
@@ -293,7 +293,7 @@ const forgot_password_reset = [
   async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return next(errors.array());
+      res.send({ errors: errors.array });
     } else {
       User.findOne({ email: req.body.email }).exec((err, theUser) => {
         if (err) {
@@ -340,7 +340,7 @@ const password_reset = [
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return next(errors.array());
+      res.send({ errors: errors.array });
     } else {
       User.findOne({ reset_code: req.params.reset_code }).exec(
         (err, theUser) => {
