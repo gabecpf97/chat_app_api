@@ -1,6 +1,7 @@
 import messageController from "./controller/messageController";
 
 const socketController = (io) => {
+  // still need to figure out how to add message to the room
   io.on("connection", (socket) => {
     socket.on("sent-message", (message, room, cb) => {
       const result = messageController.createMessage(message);
