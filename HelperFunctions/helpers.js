@@ -34,6 +34,18 @@ const findAndRemoveFrom = (arr, item) => {
   return [...arr.slice(0, index), ...arr.slice(index + 1)];
 };
 
+const checkErrorsAndReturn = (err, theObject, name) => {
+  const result = { noError: true, error: "" };
+  if (err) {
+    result.noError = false;
+    result.error = err;
+  } else if (!theObject) {
+    result.noError = false;
+    result.error = new Error(`${name} doesn't exist`);
+  }
+  return result;
+};
+
 const transporter = createTransport({
   service: "Gmail",
   auth: {
@@ -60,4 +72,4 @@ const sendEmailTo = async (userEmail, reset_code) => {
   return info;
 };
 
-export { getDefaultName, findAndRemoveFrom, sendEmailTo };
+export { getDefaultName, findAndRemoveFrom, checkErrorsAndReturn, sendEmailTo };
