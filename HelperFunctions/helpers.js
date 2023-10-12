@@ -29,6 +29,11 @@ const getDefaultName = async (req, theTitle) => {
   }
 };
 
+const findAndRemoveFrom = (arr, item) => {
+  const index = arr.indexOf(item);
+  return [...arr.slice(0, index), ...arr.slice(index + 1)];
+};
+
 const transporter = createTransport({
   service: "Gmail",
   auth: {
@@ -55,4 +60,4 @@ const sendEmailTo = async (userEmail, reset_code) => {
   return info;
 };
 
-export { getDefaultName, sendEmailTo };
+export { getDefaultName, findAndRemoveFrom, sendEmailTo };
